@@ -54,7 +54,7 @@
 
 // Make sure that the code compiles with AI_VOX undefined
 #ifdef AI_VOX
-#define VOX_DELAY 600
+#define VOX_DELAY 50
 /mob/living/silicon/ai/verb/announcement_help()
 
 	set name = "Announcement Help"
@@ -100,6 +100,8 @@
 
 	last_announcement = message
 
+	var/voxType = input(src, "Which VOX to use?", "VOX-type") in list("male", "female", "military")
+
 	if(incapacitated())
 		return
 
@@ -118,7 +120,11 @@
 		if(!word)
 			words -= word
 			continue
-		if(!GLOB.vox_sounds[word])
+		if(!GLOB.vox_sounds[word] && voxType == "female")
+			incorrect_words += word
+		if(!GLOB.vox_sounds_male[word] && voxType == "male")
+			incorrect_words += word
+		if(!GLOB.vox_sounds_military[word] && voxType == "military")
 			incorrect_words += word
 
 	if(incorrect_words.len)
@@ -139,16 +145,24 @@
 	minor_announce(capitalize(message), "[name] announces:", players = players, should_play_sound = FALSE)
 
 	for(var/word in words)
-		play_vox_word(word, ai_turf, null)
+		play_vox_word(word, ai_turf, null, voxType)
 
 
-/proc/play_vox_word(word, ai_turf, mob/only_listener)
+/proc/play_vox_word(word, ai_turf, mob/only_listener, voxType = "female")
 
 	word = lowertext(word)
 
-	if(GLOB.vox_sounds[word])
+	if( (GLOB.vox_sounds[word] && voxType == "female") || (GLOB.vox_sounds_male[word] && voxType == "male") || (GLOB.vox_sounds_military[word] && voxType == "military"))
 
-		var/sound_file = GLOB.vox_sounds[word]
+		var/sound_file
+
+		if(voxType == "female")
+			sound_file = GLOB.vox_sounds[word]
+		else if (voxType == "military")
+			sound_file = GLOB.vox_sounds_military[word]
+		else
+			sound_file = GLOB.vox_sounds_male[word]
+
 		var/sound/voice = sound(sound_file, wait = 1, channel = CHANNEL_VOX)
 		voice.status = SOUND_STREAM
 
